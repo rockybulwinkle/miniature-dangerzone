@@ -1,10 +1,13 @@
+#ifndef STRUCTS_H
+#define STRUCTS_H
+
 typedef struct ActivationFunction ActivationFunction;
 
 typedef struct Node{
 	double * weight,delta_weight;
-	double value;
+	double output;
+	double net;
 	ActivationFunction * function;
-
 }Node;
 
 typedef struct Layer{
@@ -22,4 +25,5 @@ typedef struct ActivationFunction{
 	void (*train)(Network *, int, int); //Network, layer number, node number
 } ActivationFunction;
 
+#endif
 
