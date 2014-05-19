@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <mpi.h>
 #include "structs.h"
 #include "activation_functions.h"
 
@@ -7,13 +8,18 @@ void evaluate_network(Network * network){
 	//assumes you've already set the input node's values
 	int layer_index;
 	int node_index;
+	int total_procs, rank;
+	MPI_Comm_size(MPI_COMM_WORLD, &total_procs);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 	for (layer_index=1; layer_index < network->size; layer_index++){
 		Layer * current_layer = &(network->layer[layer_index]);
-		
-		Node * current_node = current_layer->node;
 
-		for (node_index=0; node_index < current_layer->size; node_index++){
+		int nodes_per_proc = current_layer->size/total_procs;
+		
+		Node * current_node = current_layer->node+nodes_per_proc*rank;
+
+		for (node_index=0; node_index < nodes_per_proc; node_index++){
 //			printf("Layer: %d Node: %d\n", layer_index, node_index);
 			(*(ACTIVATION_FUNCTION[current_node->function]))(network, layer_index, current_node);
 			current_node++;
