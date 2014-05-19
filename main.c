@@ -10,9 +10,7 @@ int main(int argc, char * argv[]){
 	network->layer[0].node[0].output=1;
 	int i;
 	clock_t start_time = clock();
-	for (i = 0; i < 10; i++){
-		evaluate_network(network);
-	}
+	evaluate_network(network);
 	double elapsed = (clock()-start_time)/(CLOCKS_PER_SEC*1.0f);
 	print_network_layer_output(network, network->size-1);
 	printf("%f\n", elapsed);
