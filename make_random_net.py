@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 
 f = open("random.net", "w")
-layer_format=[1, 1000, 1000, 1]
+layer_format=[1, 2000, 1000, 1]
 f.write("%d\n"%(len(layer_format)))
 f.write(" ".join(map(str,layer_format)))
 f.write("\n\n")

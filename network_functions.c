@@ -15,7 +15,7 @@ void evaluate_network(Network * network){
 		Node * current_node = current_layer->node;
 
 		for (node_index=0; node_index < current_layer->size; node_index++){
-			(*(ACTIVATION_FUNCTION[current_node->function]))(prev_layer, current_node);
+			(*(ACTIVATION_FUNCTION[current_node->function]))(network, prev_layer, current_node);
 			current_node++;
 		}
 	}
@@ -29,36 +29,44 @@ Network * alloc_network(int num_layers, const int * nodes_in_each_layer)
 	network->layer = malloc(sizeof(Layer)*network->size);
 	int layer_index;
 	int node_index;
+	int num_weights = 0;
+	int num_nodes = 0;
 
 	for (layer_index=0; layer_index < num_layers; layer_index++){ //we must allocate each layer, and the nodes inside each layer
 		network->layer[layer_index].size = nodes_in_each_layer[layer_index];
 		network->layer[layer_index].node = calloc(network->layer[layer_index].size, sizeof(Node));
 		for (node_index = 0; node_index < network->layer[layer_index].size; node_index++){
 			if (layer_index > 0){
-				network->layer[layer_index].node[node_index].weight = calloc(network->layer[layer_index-1].size, sizeof(double));
-				network->layer[layer_index].node[node_index].delta_weight = calloc(network->layer[layer_index-1].size, sizeof(double));
-				network->layer[layer_index].node[node_index].function=LINEAR_ACTIVATION;	
-			} else{
-				network->layer[layer_index].node[node_index].weight = NULL;
-				network->layer[layer_index].node[node_index].delta_weight = NULL;
-				network->layer[layer_index].node[node_index].function=-1;
+				network->layer[layer_index].node[node_index].weight_offset = num_weights;
+				num_weights += network->layer[layer_index-1].size;
 			}
+			network->layer[layer_index].node[node_index].node_offset = num_nodes;
+			network->layer[layer_index].node[node_index].function = LINEAR_ACTIVATION;
 		}
+		num_nodes += 1;
 	}
+	
+	network->weight = calloc(num_weights, sizeof(double));
+	network->delta_weight = calloc(num_weights, sizeof(double));
+
+	network->output = calloc(num_nodes, sizeof(double));
+	network->net = calloc(num_nodes, sizeof(double));
+
+	network->num_weights = num_weights;
+	network->num_nodes = num_nodes;
 	return network;
 }
 
 void free_network(Network * network){
 	int layer_index;
-	int node_index;
 	for (layer_index = 0; layer_index < network->size; layer_index++){
-		for (node_index = 0; node_index < network->layer[layer_index].size; node_index++){
-			free(network->layer[layer_index].node[node_index].weight);
-			free(network->layer[layer_index].node[node_index].delta_weight);
-		}
 		free(network->layer[layer_index].node);
 	}
 	free(network->layer);
+	free(network->weight);
+	free(network->delta_weight);
+	free(network->output);
+	free(network->net);
 	free(network);
 }
 
@@ -70,7 +78,7 @@ void print_network_layer_output(Network * network, int layer_index){
 	}
 	
 	for (node_index = 0; node_index < network->layer[layer_index].size; node_index++){
-		printf("%f\t", network->layer[layer_index].node[node_index].output);
+		printf("%f\t", network->output[network->layer[layer_index].node[node_index].node_offset]);
 	}
 	printf("\n");
 }
@@ -87,16 +95,18 @@ void save_network(Network * network, char * file_name){
 	}
 
 	fprintf(fp, "%d\n", network->size);
+
 	for (layer_index = 0; layer_index < network->size; layer_index += 1){
 		fprintf(fp, "%d ", network->layer[layer_index].size);
 	}
+
 	fprintf(fp, "\n");
 
 	for (layer_index = 1; layer_index < network->size; layer_index++){
 		fprintf(fp, "\n");
 		for(node_index = 0; node_index < network->layer[layer_index].size; node_index ++){
 			for (weight_index = 0; weight_index < network->layer[layer_index-1].size; weight_index++){
-				fprintf(fp, "%f\t", network->layer[layer_index].node[node_index].weight[weight_index]);
+				fprintf(fp, "%f\t", network->weight[network->layer[layer_index].node[node_index].weight_offset+weight_index]);
 			}
 			fprintf(fp, "\n%d\n", network->layer[layer_index].node[node_index].function);
 		}
@@ -123,28 +133,44 @@ Network * load_network(char * file_name){
 	fscanf(fp, "%d", &(network->size));
 	network->layer = malloc(sizeof(Layer)*network->size);
 
+	int num_nodes = 0;
+	int num_weights = 0;
 	for (layer_index = 0; layer_index < network->size; layer_index += 1){
 		fscanf(fp, "%d", &(network->layer[layer_index].size));
 		network->layer[layer_index].node = calloc(network->layer[layer_index].size, sizeof(Node));
-	}
-
-	for (layer_index = 0; layer_index < network->size; layer_index++){
-		for(node_index = 0; node_index < network->layer[layer_index].size; node_index ++){
-			if (layer_index == 0){
-				network->layer[layer_index].node[node_index].weight=NULL;
-				network->layer[layer_index].node[node_index].delta_weight=NULL;
-				network->layer[layer_index].node[node_index].function=-1;
-				continue;
-			} else{
-				network->layer[layer_index].node[node_index].weight = malloc(sizeof(double)*network->layer[layer_index-1].size);
-				network->layer[layer_index].node[node_index].delta_weight= malloc(sizeof(double)*network->layer[layer_index-1].size);
-			}
-			for (weight_index = 0; weight_index < network->layer[layer_index-1].size; weight_index++){
-				fscanf(fp, "%lf\t", &(network->layer[layer_index].node[node_index].weight[weight_index]));
-			}
-			fscanf(fp, "\n%d\n", &(network->layer[layer_index].node[node_index].function));
+		num_nodes += network->layer[layer_index].size;
+		if (layer_index > 0){
+			num_weights += network->layer[layer_index-1].size*network->layer[layer_index].size;
 		}
 	}
+
+	network->weight = calloc(num_weights, sizeof(double));
+	network->delta_weight = calloc(num_weights, sizeof(double));
+
+	network->output = calloc(num_nodes, sizeof(double));
+	network->net = calloc(num_nodes, sizeof(double));
+
+	network->num_weights = num_weights;
+	network->num_nodes = num_nodes;
+
+	num_nodes = 0;
+	num_weights = 0;
+	for (layer_index = 0; layer_index < network->size; layer_index++){
+		for(node_index = 0; node_index < network->layer[layer_index].size; node_index ++){
+			if (layer_index > 0){
+				network->layer[layer_index].node[node_index].weight_offset = num_weights;
+				
+				for (weight_index = 0; weight_index < network->layer[layer_index-1].size; weight_index++){
+					fscanf(fp, "%lf", &(network->weight[num_weights]));
+					num_weights+=1;
+				}
+			}
+			network->layer[layer_index].node[node_index].node_offset=num_nodes;
+			fscanf(fp, "%d", &(network->layer[layer_index].node[node_index].function));
+			num_nodes += 1;
+		}
+	}
+
 
 	fclose(fp);
 	return network;
