@@ -8,3 +8,4 @@ void LinearActivation(Layer * previous_layer, Node * self){
 	}
 	self->output = self->net;
 }
+
