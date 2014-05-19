@@ -7,12 +7,10 @@ int main(int argc, char * argv[]){
 //	const int layer_size[] = {1,2,1};
 //	Network * network = alloc_network(3, layer_size);
 	Network * network = load_network(argv[1]);
-	network->output[network->layer[0].node[0].node_offset] = 5;
+	network->output[network->layer[0].node[0].node_offset] = 1;
 	int i;
 	clock_t start_time = clock();
-	for (i = 0; i < 10; i++){
-		evaluate_network(network);
-	}
+	evaluate_network(network);
 	double elapsed = (clock()-start_time)/(CLOCKS_PER_SEC*1.0f);
 	print_network_layer_output(network, network->size-1);
 	printf("%f\n", elapsed);
