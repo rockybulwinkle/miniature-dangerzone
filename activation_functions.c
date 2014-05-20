@@ -12,7 +12,6 @@ void LinearActivation(Network * network, int layer, Node * self){
 	for (node_index=0; node_index < network->layer[layer-1].size; node_index++){
 		*net += weight[node_index]*prev_output[node_index];
 
-//		printf("%f*%f\n", prev_output[node_index], weight[node_index]);
 	}
 	network->output[self->node_offset] = *net;
 }

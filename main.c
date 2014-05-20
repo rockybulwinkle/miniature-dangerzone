@@ -15,13 +15,15 @@ int main(int argc, char * argv[]){
 //	Network * network = alloc_network(3, layer_size);
 	Network * network = load_network(argv[1]);
 	network->output[network->layer[0].node[0].node_offset] = 1;
-	int i;
-	clock_t start_time = clock();
+	double start_time = MPI_Wtime();
 	evaluate_network(network);
-	double elapsed = (clock()-start_time)/(CLOCKS_PER_SEC*1.0f);
+	double elapsed = (MPI_Wtime()-start_time);
+    if (rank==0){
 	print_network_layer_output(network, network->size-1);
 	printf("%f\n", elapsed);
-	save_network(network, argv[1]);
+	//save_network(network, argv[1]);
+    }
 	free_network(network);
+    MPI_Finalize();
 	return 0;
 }
