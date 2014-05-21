@@ -19,7 +19,7 @@ int main(int argc, char * argv[]){
     evaluate_network(network);
     printf("starting:\n");
 	double start_time = MPI_Wtime();
-    for (i = 0; i < 100; i++){
+    for (i = 0; i < 5000; i++){
     	evaluate_network(network);
     }
 	double elapsed = (MPI_Wtime()-start_time);
